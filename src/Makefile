@@ -68,9 +68,11 @@ all: ecc_auth
 
 ecc_auth:
 	$(CC) $(CFLAGS) -g $(SRCS) ecc/ecc_auth.c -o ecc/test_auth
+	@tree ecc/
 
 eos_ecc:
 	$(CC) $(CFLAGS) -g $(SRCS) ecc/eos_ecc.c -o ecc/test_eos
+	@tree ecc/
 
 clean:
 	rm -f *.o test ecc/test*
