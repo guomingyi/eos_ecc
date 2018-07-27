@@ -1,0 +1,13 @@
+#!/bin/bash
+# https://github.com/guomingyi/eos_ecc.git
+
+if [ "y$1" = yv ]; then
+    git remote add origin https://github.com/guomingyi/eos_ecc.git
+    exit 0
+fi
+
+git add --all
+git commit -am "<$1>"
+git push -u origin master
+
+exit 0
