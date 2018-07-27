@@ -22,14 +22,14 @@ static int Private_key_to_public_key(uint8_t *prik, uint8_t *pubk)
 {
     curve_point R;
     bignum256 k;
-    uint8_t priv_key_raw[32];
+    uint8_t r[32];
     uint8_t pub_key[36+1];
     uint8_t hash[32];
     char b58_str[32+32] = {0};
     size_t res = sizeof(b58_str);
 
-    Base58_decode(prik, priv_key_raw);
-    bn_read_be(priv_key_raw, &k);
+    Base58_decode(prik, r);
+    bn_read_be(r, &k);
     // compute k*G
     scalar_multiply(&secp256k1, &k, &R);
     pub_key[0] = 0x02 | (R.y.val[0] & 0x01);
@@ -122,14 +122,64 @@ static int Seed_to_private_key(uint8_t *seed, uint8_t *pk)
     return -1;
 }
 
+static int ecc_sign(uint8_t *priv_key, uint8_t *msg, uint8_t *sig)
+{
+    curve_point R;
+    bignum256 k;
+
+    uint8_t d[32];
+    uint8_t r[33] = {0};
+    uint8_t s[80] = {0};
+    uint8_t p;
+    int n;
+
+    n = strlen((char *)msg);
+    hasher_Raw(HASHER_SHA2, msg, n, d);
+    Base58_decode(priv_key, r);
+    bn_read_be(r, &k);
+    // compute k*G
+    scalar_multiply(&secp256k1, &k, &R);
+
+    ecdsa_sign_digest(&secp256k1, r, d, s, &p, NULL); 
+    memcpy(sig, s, sizeof(s));
+    return 0;
+}
+
+static int ecc_verify(uint8_t *pub_key, uint8_t *sig, uint8_t *msg) 
+{
+    uint8_t d[32];
+    uint8_t r[33];
+    uint8_t t[64] = {0};
+    int n = strlen((char *)msg);
+
+    hasher_Raw(HASHER_SHA2, msg, n, d);
+    memcpy(t, pub_key + 3, strlen((char *)pub_key) - 3); // cut 'EOS'
+    Base58_decode(t, r);
+    int e = ecdsa_verify_digest(&secp256k1, r, sig, d);
+    if (e != 0) {
+        printf("%s: FAILED!!!.\n",__func__);
+        return -1;
+    }
+
+    printf("%s: Success!\n",__func__);
+    return 0;
+}
+
 int main(void)
 {
-    uint8_t seed[] = "你好eos"; //"5KBGwdpPYgViff1wram2UnUCoU4eDK5eKTpZTBGRHCBgiPHF5o5"
-    uint8_t private_key[76] = {0};
-    uint8_t public_key[76] = {0};
+    uint8_t seed[] = "你好eos"; 
+    uint8_t private_key[76] = {0}; //"5KBGwdpPYgViff1wram2UnUCoU4eDK5eKTpZTBGRHCBgiPHF5o5"
+    uint8_t public_key[76] = {0}; // "EOS8SGcitDFW42Dg19xgeG5AMARB7Y7ByrJ5RNapRG4J3V3d5wAs6"
+    uint8_t sig[100] = {0};
+    uint8_t *msg = (uint8_t *)"1234567890";
 
     Seed_to_private_key(seed, private_key);
+
     Private_key_to_public_key(private_key, public_key);
+
+    ecc_sign(private_key, msg, sig);
+
+    ecc_verify(public_key, sig, msg);
     return 0;
 }
 
