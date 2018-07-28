@@ -36,7 +36,7 @@ static int compute_public_key(uint8_t *prik, uint8_t *pubk)
     memcpy(pub_key + 32 + 1, hash, 4);
 
     b58enc(b58_str, &res, pub_key, sizeof(pub_key));
-    int c = sprintf((char *)pubk, "EOS%s", b58_str);
+    int c = sprintf((char *)pubk, "%s", b58_str);
 
     printf("ecc key:\n%s\n%s\n", (char *)prik,(char *)pubk);
     return c;
@@ -199,7 +199,7 @@ static int ecc_sign(uint8_t *priv_key, uint8_t *msg, uint8_t *sig)
 
     size_t res = sizeof(buf);
     if (b58enc((char *)buf, &res, (const char *)s, strlen((char *)s))) {
-        int c1 = sprintf((char *)sig, "SIG_K1_%s", buf);
+        int c1 = sprintf((char *)sig, "SIG_SECP256K1_%s", buf);
         printf("%s:\nmsg: %s\n%s\n",__func__, msg, sig);
         return c1;
     }
@@ -218,9 +218,9 @@ static int ecc_verify(uint8_t *pub_key, uint8_t *sig, uint8_t *msg)
 
 
     hasher_Raw(HASHER_SHA2, msg, n, d);
-    memcpy(t, pub_key + 3, strlen((char *)pub_key) - 3); // cut 'EOS'
+    memcpy(t, pub_key, strlen((char *)pub_key));
     Base58_decode(r, t);
-    int h_len = strlen("SIG_K1_");
+    int h_len = strlen("SIG_SECP256K1_");
     memset(t, 0, sizeof(t));
     memcpy(t, sig + h_len, strlen((char *)sig) - h_len);
     Base58_decode_sig(s, t);
@@ -246,8 +246,8 @@ int main(void)
     uint8_t seed[] = "[莫愁前路无知己]";
     uint8_t *msg = (uint8_t *)"[天下谁人不识君]";
     uint8_t private_key[76] = {0}; //"5KfAkHSi7dFemXxNYC4Vqnkj8d3F2xR46345MQa2V7BJizcviUx"
-    uint8_t public_key[76] = {0}; // "EOS55tZ24kd1ivokihWK7Z9YJe3gup5yW6UiJMGkRbENGMYzeKgLC"
-    uint8_t sig[128] = {0}; // "SIG_K1_KrxdP6J3oWdzyL2FywhtW6anbsiWfse2yfg83sgvURkwCucRNgtYcumTt7mzBey3gEjY79cwYsVitB2g9cGy2o4zJ1ELfS"
+    uint8_t public_key[76] = {0}; // "55tZ24kd1ivokihWK7Z9YJe3gup5yW6UiJMGkRbENGMYzeKgLC"
+    uint8_t sig[128] = {0}; // "SIG_SECP256K1_KrxdP6J3oWdzyL2FywhtW6anbsiWfse2yfg83sgvURkwCucRNgtYcumTt7mzBey3gEjY79cwYsVitB2g9cGy2o4zJ1ELfS"
 
     private_key_from_seed(seed, private_key);
     compute_public_key(private_key, public_key);
